@@ -1,0 +1,6 @@
+openenv-core>=0.2.2
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.6.0
+websocket-client>=1.7.0
+requests>=2.31.0
