@@ -14,17 +14,14 @@ Usage:
 from __future__ import annotations
 
 import random
-import sys
 import os
 from typing import Any, Optional
 from uuid import uuid4
 
-sys.path.insert(0, os.path.dirname(__file__))
-
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 
-from models import DriftDeskAction, DriftDeskObservation
+from driftdesk.models import DriftDeskAction, DriftDeskObservation
 
 
 _DUMMY_POLICY = (

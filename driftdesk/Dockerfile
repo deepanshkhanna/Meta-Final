@@ -45,6 +45,9 @@ RUN pip install --no-cache-dir --no-deps openenv-core==0.2.2
 
 COPY . .
 
+# Install the driftdesk package so absolute imports (driftdesk.models, etc.) resolve.
+RUN pip install --no-cache-dir --no-build-isolation -e .
+
 EXPOSE 7860
 ENV ENABLE_WEB_INTERFACE=false
 

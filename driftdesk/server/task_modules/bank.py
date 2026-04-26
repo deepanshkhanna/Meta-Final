@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Tuple
 
-from schemas import REGISTRY
-from server.task_modules.base import TaskModule
+from driftdesk.schemas import REGISTRY
+from driftdesk.server.task_modules.base import TaskModule
 
 
 class BankDisputeModule(TaskModule):

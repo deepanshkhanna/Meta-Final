@@ -19,11 +19,21 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
 ]
 
 [project.scripts]
-server = "server.app:main"
+driftdesk-server = "driftdesk.server.app:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["driftdesk", "driftdesk.server", "driftdesk.server.task_modules"]
+packages = [
+    "driftdesk",
+    "driftdesk.server",
+    "driftdesk.server.task_modules",
+    "driftdesk.training",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["driftdesk/tests"]
+addopts = "-v --tb=short"

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from schemas import REGISTRY, TRAIN_VERSIONS
+from driftdesk.schemas import REGISTRY, TRAIN_VERSIONS
 
 
 _POLICY_TEMPLATE = """\

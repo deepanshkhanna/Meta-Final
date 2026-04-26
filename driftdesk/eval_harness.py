@@ -18,9 +18,7 @@ import os
 import sys
 from typing import Any, Dict, List, Optional
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from client import DriftDeskClient
+from driftdesk.client import DriftDeskClient
 
 EVAL_SEEDS = list(range(1000, 1050))   # 50 deterministic seeds
 N_EVAL = len(EVAL_SEEDS)

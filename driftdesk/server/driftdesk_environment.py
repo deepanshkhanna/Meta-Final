@@ -14,25 +14,21 @@ Episode flow:
 from __future__ import annotations
 
 import random
-import sys
 import os
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-# Allow imports from parent package when run from server/
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 
-from models import DriftDeskAction, DriftDeskObservation, DriftDeskState
-from schemas import REGISTRY, TRAIN_VERSIONS
-from server.drift_controller import SchemaDriftController
-from server.policy_injector import PolicyDocumentInjector
-from server.reward_engine import EpisodeRecord, RewardEngine
-from server.task_modules.airline import AirlineRebookModule
-from server.task_modules.bank import BankDisputeModule
-from server.task_modules.insurance import InsuranceClaimModule
+from driftdesk.models import DriftDeskAction, DriftDeskObservation, DriftDeskState
+from driftdesk.schemas import REGISTRY, TRAIN_VERSIONS
+from driftdesk.server.drift_controller import SchemaDriftController
+from driftdesk.server.policy_injector import PolicyDocumentInjector
+from driftdesk.server.reward_engine import EpisodeRecord, RewardEngine
+from driftdesk.server.task_modules.airline import AirlineRebookModule
+from driftdesk.server.task_modules.bank import BankDisputeModule
+from driftdesk.server.task_modules.insurance import InsuranceClaimModule
 
 
 # ------------------------------------------------------------------

@@ -40,7 +40,7 @@ pip install -q --no-cache-dir \\
     websockets==15.0.1 requests==2.32.3 python-dateutil==2.9.0.post0
 
 pip install -q --no-cache-dir --no-deps \\
-    transformers==4.46.3 trl==0.12.2 peft==0.13.2 accelerate==1.0.1 \\
+    transformers==4.46.3 accelerate==1.0.1 \
     bitsandbytes==0.44.1 datasets==3.0.2 "huggingface_hub==0.26.5" \\
     safetensors==0.4.5 sentencepiece==0.2.0 tokenizers==0.20.3 \\
     regex==2024.11.6 tqdm==4.67.0 pyarrow==17.0.0 pandas==2.2.3 \\
@@ -50,7 +50,17 @@ pip install -q --no-cache-dir --no-deps \\
     multidict==6.1.0 yarl==1.15.4 frozenlist==1.5.0 aiosignal==1.3.1 \\
     attrs==24.2.0 async-timeout==4.0.3 aiohappyeyeballs==2.4.3 propcache==0.2.0
 
-pip install -q --no-cache-dir --no-deps openenv-core==0.2.2
+# Install openenv-core and trl WITH deps so server + GRPOTrainer import correctly
+pip install -q --no-cache-dir openenv-core==0.2.2
+pip install -q --no-cache-dir --upgrade --no-deps "trl>=0.13,<0.16" peft==0.13.2
+pip install -q --no-cache-dir starlette==0.38.6 anyio==4.6.2.post1 sniffio==1.3.1 \
+    h11==0.14.0 httpcore==1.0.6 httpx==0.27.2
+# openenv-core may have bumped huggingface_hub past transformers 4.46.3's <1.0 requirement.
+# Re-pin it (with --no-deps so we don't undo the openenv install).
+pip install -q --no-cache-dir --no-deps --force-reinstall "huggingface_hub==0.26.5"
+echo "--- Verifying critical imports ---"
+python3 -c "from openenv.core.env_server.http_server import create_app; print('openenv OK')" || exit 1
+python3 -c "from trl import GRPOConfig, GRPOTrainer; print('trl GRPO OK')" || exit 1
 
 echo "--- Cloning Space repo to /workspace ---"
 python3 -c "
@@ -71,14 +81,21 @@ echo "--- Starting DriftDesk env server on :8000 ---"
 nohup uvicorn server.app:app --host 0.0.0.0 --port 8000 --workers 1 > /tmp/env_server.log 2>&1 &
 ENV_PID=$!
 
-# Wait for env server
-for i in $(seq 1 30); do
-    if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+# Wait for env server (try /healthz then /health then /docs)
+for i in $(seq 1 60); do
+    if curl -sf http://localhost:8000/healthz > /dev/null 2>&1 \
+       || curl -sf http://localhost:8000/health > /dev/null 2>&1 \
+       || curl -sf http://localhost:8000/docs > /dev/null 2>&1; then
         echo "Env server ready after ${{i}}s (PID=$ENV_PID)"
         break
     fi
     sleep 1
 done
+# Probe once more, dump server log if still not up
+curl -sf http://localhost:8000/docs > /dev/null 2>&1 || {{
+    echo "!!! env server not responding — log tail:"
+    tail -50 /tmp/env_server.log || true
+}}
 
 echo "--- Launching GRPO training ---"
 export DRIFTDESK_ENV_URL=http://localhost:8000

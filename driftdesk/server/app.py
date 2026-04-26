@@ -9,12 +9,11 @@ Endpoints (OpenEnv standard):
   WS   /ws     — WebSocket for persistent sessions
   GET  /healthz — health check
 """
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import os
 
 from openenv.core.env_server.http_server import create_app
-from models import DriftDeskAction, DriftDeskObservation
-from server.driftdesk_environment import DriftDeskEnvironment
+from driftdesk.models import DriftDeskAction, DriftDeskObservation
+from driftdesk.server.driftdesk_environment import DriftDeskEnvironment
 
 app = create_app(
     DriftDeskEnvironment,
@@ -24,11 +23,28 @@ app = create_app(
     max_concurrent_envs=4,
 )
 
+from fastapi import HTTPException
 from fastapi.responses import PlainTextResponse
 
+# Optional bearer-token auth for the training log endpoint.
+# Set TRAINING_LOG_TOKEN in the environment to require ?token=<value>.
+_TRAINING_LOG_TOKEN: str | None = os.environ.get("TRAINING_LOG_TOKEN")
+
+
 @app.get("/training-log")
-def training_log(tail: int = 200):
-    # Probe both common container layouts for the log file.
+def training_log(tail: int = 200, token: str | None = None):
+    """
+    Return the last `tail` lines of training.log.
+
+    If the env var TRAINING_LOG_TOKEN is set, the caller must supply the
+    matching value as ?token=<value>. Returns HTTP 403 otherwise.
+    Note: tail is capped at 5000 to prevent excessive response sizes.
+    """
+    if _TRAINING_LOG_TOKEN and token != _TRAINING_LOG_TOKEN:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    tail = min(tail, 5000)
+
     candidates = ["/app/training.log", "/home/user/app/training.log"]
     for log_path in candidates:
         if os.path.exists(log_path):
@@ -38,23 +54,11 @@ def training_log(tail: int = 200):
                 f"# log_path={log_path} bytes={os.path.getsize(log_path)}\n"
                 + "".join(lines[-tail:])
             )
-    # Fallback: surface filesystem state so we can diagnose silent failures.
-    out = ["training.log not found in candidates: " + ", ".join(candidates), ""]
-    for d in ["/app", "/home/user/app", "/tmp"]:
-        out.append(f"=== ls {d} ===")
-        try:
-            out.extend(sorted(os.listdir(d))[:50])
-        except Exception as e:
-            out.append(f"(error: {e})")
-        out.append("")
-    out.append("=== env ===")
-    for k in ("HF_TOKEN", "DRIFTDESK_ENV_URL", "GRPO_STEPS", "MAX_EPISODE_STEPS",
-             "GRPO_TEMPERATURE", "GRPO_TOP_P", "GRPO_NUM_GENERATIONS"):
-        v = os.environ.get(k)
-        if v is not None and k == "HF_TOKEN":
-            v = f"set(len={len(v)})"
-        out.append(f"{k}={v}")
-    return PlainTextResponse("\n".join(out))
+
+    return PlainTextResponse(
+        "training.log not found. Candidates checked: " + ", ".join(candidates),
+        status_code=404,
+    )
 
 
 def main(host: str = "0.0.0.0", port: int = 8000) -> None:
